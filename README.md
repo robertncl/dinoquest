@@ -37,7 +37,7 @@ game ships with **zero binary image assets**.
 
 ## Getting started
 
-Requires [Bun](https://bun.sh) (developed against 1.1.x).
+Requires [Bun](https://bun.sh) (developed against 1.3.x).
 
 ```sh
 # install dependencies (optional — only needed for the screenshot tool)
