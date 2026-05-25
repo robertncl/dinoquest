@@ -6,5 +6,8 @@
   "scripts": {
     "dev": "bun --hot server.ts",
     "start": "bun server.ts"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.60.0"
   }
 }
