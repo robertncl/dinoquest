@@ -1,0 +1,10 @@
+{
+  "name": "dinoquest",
+  "version": "1.0.0",
+  "description": "A Chrome dinosaur-style endless runner game built with Bun",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot server.ts",
+    "start": "bun server.ts"
+  }
+}

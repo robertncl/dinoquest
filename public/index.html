@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DinoQuest</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="stage">
+    <div class="hud">
+      <span class="hud__label">DinoQuest</span>
+      <span class="hud__scores">
+        <span id="hiScore" class="hud__hi">HI 00000</span>
+        <span id="score" class="hud__score">00000</span>
+      </span>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="game" width="900" height="260" aria-label="DinoQuest runner game"></canvas>
+
+      <div id="overlay" class="overlay">
+        <h1 class="overlay__title">DinoQuest</h1>
+        <p class="overlay__msg">Jump the cacti. Duck the pterodactyls.</p>
+        <p class="overlay__keys">
+          <kbd>Space</kbd> / <kbd>↑</kbd> jump &nbsp;·&nbsp; <kbd>↓</kbd> duck &nbsp;·&nbsp; tap to play
+        </p>
+        <button id="startBtn" class="overlay__btn" type="button">Press Space to Start</button>
+      </div>
+    </div>
+
+    <p class="footer">Built with Bun · Canvas 2D</p>
+  </main>
+
+  <script src="/game.js" type="module"></script>
+</body>
+</html>
