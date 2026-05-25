@@ -8,72 +8,94 @@
 
 const grid = (s) => s.replace(/^\n/, "").replace(/\n$/, "").split("\n");
 
+// Standing T-rex body (head + torso + tail). The eye is baked in as a gap so
+// no manual pixel-punching is needed. Legs are separate, animated frames.
 const DINO_BODY = grid(`
-            ######
-            #######
-            ## ####
-            #######
-            #######
-            #####
-#           #####
-##          #####
-###        ######
-####      #######
-#####    ########
-###############
-##############
-#############
-############
-###########
-##########
+                ##########
+                ###########
+                ###########
+                ##### #####
+                ###########
+                ###########
+                ###### ####
+                ######
+                ######
+#               ######
+##              #######
+###            ########
+####          #########
+#####        ##########
+######      ###########
+#######    ############
+########################
+ #######################
+  #####################
+   ###################
+    #################
+     ###############
+      #############
+`);
+
+// Right-arm nub, drawn separately so it sits in front of the chest.
+const DINO_ARM = grid(`
+###
+  #
 `);
 
 const DINO_LEGS_A = grid(`
-###  ####
-##    ###
-#     ###
-      ##
+      ###    ####
+      ###    ###
+      ###    ##
+      ##     ##
+     ###    ##
+    ###
 `);
 
 const DINO_LEGS_B = grid(`
-###  ####
-##    ##
-##    ###
-      ##
+      ###    ####
+      ###    ###
+       ##    ###
+       ##    ##
+       ##   ###
+            ###
 `);
 
 const DINO_LEGS_STAND = grid(`
-###  ####
-##    ###
-##    ###
-##    ##
+      ###    ####
+      ###    ###
+      ###    ###
+      ###    ###
+      ###    ###
+     ####   ####
 `);
 
-// Ducking dino: long and low.
+// Ducking dino: stretched low, head forward, tail back.
 const DINO_DUCK_A = grid(`
-                    #########
-                    ##########
-#                   ## #######
-##                  ##########
-###       ###################
-####     ####################
-###################  ####
-#################
-##  ###    ## ###
-#    #     #   #
+                      ##########
+                      ###########
+#                     ###### #####
+##                    ###########
+####       ######################
+########  #######################
+##################################
+###################  #####
+#############
+   ###  ###     ##  ##
+   ##    #      #    #
 `);
 
 const DINO_DUCK_B = grid(`
-                    #########
-                    ##########
-#                   ## #######
-##                  ##########
-###       ###################
-####     ####################
-###################  ####
-#################
- ## ##     ##  ##
- #   #      #   #
+                      ##########
+                      ###########
+#                     ###### #####
+##                    ###########
+####       ######################
+########  #######################
+##################################
+###################  #####
+#############
+    ## ##        ###  ##
+    #   #        #     #
 `);
 
 const CACTUS_SMALL = grid(`
@@ -604,41 +626,38 @@ function render() {
 function drawDino(ink) {
   if (state !== STATE.IDLE && dino.ducking && dino.onGround) {
     const frame = dino.legFrame ? DINO_DUCK_B : DINO_DUCK_A;
-    drawDuckEye(frame, ink);
+    const top = GROUND_Y - DINO_DUCK_H;
+    drawSprite(frame, dino.x, top, PX, ink);
+    if (state === STATE.OVER) drawDeadEye(dino.x + 27 * PX, top + 2 * PX);
     return;
   }
 
   const feetY = dino.feetY ?? GROUND_Y;
   const bodyTop = feetY - DINO_STAND_H;
   drawSprite(DINO_BODY, dino.x, bodyTop, PX, ink);
+  // Tiny forward arm.
+  drawSprite(DINO_ARM, dino.x + 22 * PX, bodyTop + 15 * PX, PX, ink);
 
   let legs;
-  if (state === STATE.IDLE || state === STATE.OVER) {
-    legs = DINO_LEGS_STAND;
-  } else if (!dino.onGround) {
-    legs = DINO_LEGS_STAND;
-  } else {
+  if (state === STATE.RUNNING && dino.onGround) {
     legs = dino.legFrame ? DINO_LEGS_A : DINO_LEGS_B;
+  } else {
+    legs = DINO_LEGS_STAND;
   }
   const legTop = bodyTop + spriteHeight(DINO_BODY, PX);
   drawSprite(legs, dino.x, legTop, PX, ink);
 
-  // Eye: punch a small sky-colored square into the head.
-  ctx.fillStyle = state === STATE.OVER ? ink : skyColor();
-  ctx.fillRect(dino.x + 18 * PX, bodyTop + 2 * PX, PX, PX);
-  if (state === STATE.OVER) {
-    // X eye
-    ctx.fillStyle = skyColor();
-    ctx.fillRect(dino.x + 17 * PX, bodyTop + 1 * PX, PX, PX);
-    ctx.fillRect(dino.x + 19 * PX, bodyTop + 3 * PX, PX, PX);
-  }
+  if (state === STATE.OVER) drawDeadEye(dino.x + 21 * PX, bodyTop + 3 * PX);
 }
 
-function drawDuckEye(frame, ink) {
-  const top = GROUND_Y - DINO_DUCK_H;
-  drawSprite(frame, dino.x, top, PX, ink);
-  ctx.fillStyle = skyColor();
-  ctx.fillRect(dino.x + 26 * PX, top + 2 * PX, PX, PX);
+// Replace the open eye-gap with an "X" to read as defeated.
+function drawDeadEye(ex, ey) {
+  ctx.fillStyle = inkColor();
+  ctx.fillRect(ex - PX, ey - PX, PX, PX);
+  ctx.fillRect(ex + PX, ey - PX, PX, PX);
+  ctx.fillRect(ex, ey, PX, PX);
+  ctx.fillRect(ex - PX, ey + PX, PX, PX);
+  ctx.fillRect(ex + PX, ey + PX, PX, PX);
 }
 
 // Static decorative elements.
@@ -667,3 +686,12 @@ function frame(now) {
 dino.feetY = GROUND_Y;
 hiScoreEl.textContent = "HI " + pad(hiScore);
 requestAnimationFrame(frame);
+
+// Dev-only hooks used by shot.mjs for deterministic screenshots.
+window.__setScore = (n) => {
+  score = n;
+};
+window.__forceOver = () => {
+  if (state === STATE.IDLE) startGame();
+  gameOver();
+};
