@@ -316,6 +316,7 @@ function spawnObstacle() {
       y,
       w: spriteWidth(BIRD_UP, PX),
       h: spriteHeight(BIRD_UP, PX),
+      hitboxes: BIRD_BOXES,
       flap: 0,
       flapTimer: 0,
     };
@@ -334,6 +335,7 @@ function spawnObstacle() {
       y: GROUND_Y - h,
       w: unitW * count,
       h,
+      hitboxes: large ? CACTUS_LARGE_BOXES : CACTUS_SMALL_BOXES,
     };
   }
   obstacles.push(obstacle);
@@ -462,25 +464,67 @@ function gameOver() {
 }
 
 // ---------------------------------------------------------------------------
-// Collision (AABB with a forgiving inset).
+// Collision.
+//
+// Each sprite gets a small set of collision boxes (in grid units, relative to
+// the sprite's draw origin) that hug its filled pixels instead of one loose
+// box around the whole grid. This matches the real shapes: the dino's L,
+// the bird's narrow body inside a wide wingspan, the cacti's cross.
+//
+// Obstacle boxes are tight (deaths feel fair); the dino's are slightly inset
+// from its edges (a near miss reads as a miss). Boxes are {x, y, w, h} in
+// grid cells; scaleBoxes() converts them to world-pixel AABBs.
 // ---------------------------------------------------------------------------
 
-function dinoHitbox() {
-  const inset = 6;
+// Dino standing: head/neck (upper right) + body/legs (lower, full width).
+const STAND_BOXES = [
+  { x: 16, y: 1, w: 11, h: 10 },
+  { x: 1, y: 11, w: 23, h: 17 },
+];
+// Dino ducking: a low body slab plus the head poking forward; legs omitted.
+const DUCK_BOXES = [
+  { x: 0, y: 4, w: 33, h: 4 },
+  { x: 22, y: 0, w: 12, h: 4 },
+];
+// Cacti: a vertical stalk plus the arm band, trimming the empty corners.
+const CACTUS_SMALL_BOXES = [
+  { x: 2, y: 0, w: 2, h: 10 },
+  { x: 0, y: 2, w: 7, h: 4 },
+];
+const CACTUS_LARGE_BOXES = [
+  { x: 3, y: 0, w: 2, h: 13 },
+  { x: 0, y: 1, w: 9, h: 6 },
+];
+// Bird: the solid central body + leading edge, not the thin upper wing tip
+// or the trailing tail (same box works for both flap frames).
+const BIRD_BOXES = [{ x: 0, y: 3, w: 18, h: 6 }];
+
+function scaleBoxes(boxes, ox, oy) {
+  return boxes.map((b) => ({
+    x: ox + b.x * PX,
+    y: oy + b.y * PX,
+    w: b.w * PX,
+    h: b.h * PX,
+  }));
+}
+
+function dinoBoxes() {
   if (dino.ducking && dino.onGround) {
-    return {
-      x: dino.x + inset,
-      y: GROUND_Y - DINO_DUCK_H + inset,
-      w: DINO_DUCK_W - inset * 2,
-      h: DINO_DUCK_H - inset * 2,
-    };
+    return scaleBoxes(DUCK_BOXES, dino.x, GROUND_Y - DINO_DUCK_H);
   }
-  return {
-    x: dino.x + inset,
-    y: dino.feetY - DINO_STAND_H + inset,
-    w: DINO_STAND_W - inset * 2,
-    h: DINO_STAND_H - inset * 2,
-  };
+  return scaleBoxes(STAND_BOXES, dino.x, (dino.feetY ?? GROUND_Y) - DINO_STAND_H);
+}
+
+function obstacleBoxes(o) {
+  if (o.type === "cactus") {
+    const unitW = spriteWidth(o.sprite, PX);
+    const out = [];
+    for (let i = 0; i < o.count; i++) {
+      out.push(...scaleBoxes(o.hitboxes, o.x + i * unitW, o.y));
+    }
+    return out;
+  }
+  return scaleBoxes(o.hitboxes, o.x, o.y);
 }
 
 function overlaps(a, b) {
@@ -556,12 +600,12 @@ function update(dt) {
   for (const c of clouds) c.x -= speed * 0.25 * dt;
   clouds = clouds.filter((c) => c.x + c.w > -10);
 
-  // Collision.
+  // Collision: any dino box overlapping any obstacle box ends the run.
   if (!invincible) {
-    const hb = dinoHitbox();
+    const db = dinoBoxes();
     for (const o of obstacles) {
-      const ob = { x: o.x + 4, y: o.y + 4, w: o.w - 8, h: o.h - 8 };
-      if (overlaps(hb, ob)) {
+      const ob = obstacleBoxes(o);
+      if (db.some((a) => ob.some((b) => overlaps(a, b)))) {
         gameOver();
         break;
       }
