@@ -21,11 +21,10 @@ async function shot(name) {
 await page.waitForTimeout(400);
 await shot("01-title");
 
-// Force deterministic state for clean sprite captures.
-await page.evaluate(() => window.__shotMode && window.__shotMode());
-
-// 2. Start + run a little so obstacles/clouds appear.
+// 2. Start + run a little so obstacles/clouds appear. Invincibility keeps the
+// dino from dying mid-capture so frames stay deterministic.
 await page.keyboard.press("Space");
+await page.evaluate(() => window.__invincible(true));
 await page.waitForTimeout(1500);
 await shot("02-running");
 
@@ -40,10 +39,14 @@ await page.keyboard.press("Space");
 await page.waitForTimeout(180);
 await shot("04-jumping");
 
-// 5. Night mode (drive score up via the test hook).
-await page.evaluate(() => window.__setScore && window.__setScore(820));
-await page.waitForTimeout(900);
+// 5. Night mode (drive score up via the test hook), with a clean field.
+await page.evaluate(() => {
+  window.__setScore(820);
+  window.__clearObstacles();
+});
+await page.waitForTimeout(1100);
 await shot("05-night");
+await page.evaluate(() => window.__invincible(false));
 
 // 6. Game over (force a collision via the test hook).
 await page.evaluate(() => window.__forceOver && window.__forceOver());

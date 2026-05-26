@@ -249,6 +249,7 @@ let isNight = false;
 let nightTransition = 0; // 0 = day, 1 = night (for smooth color blend)
 let lastTime = 0;
 let flashTimer = 0; // brief score-milestone blink
+let invincible = false; // dev-only: skip collision (used by shot.mjs)
 
 const DINO_STAND_H = spriteHeight([...DINO_BODY, ...DINO_LEGS_STAND], PX);
 const DINO_STAND_W = spriteWidth(DINO_BODY, PX);
@@ -256,29 +257,42 @@ const DINO_DUCK_H = spriteHeight(DINO_DUCK_A, PX);
 const DINO_DUCK_W = spriteWidth(DINO_DUCK_A, PX);
 
 // ---------------------------------------------------------------------------
-// Colors (blend between day and night).
+// Colors. Each palette entry is [dayHex, nightHex]; col() blends between them
+// by nightTransition so the whole scene cross-fades on the day/night cycle.
 // ---------------------------------------------------------------------------
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
-function blendChannel(day, night, t) {
-  return Math.round(lerp(day, night, t));
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
-function inkColor() {
-  const t = nightTransition;
-  const r = blendChannel(0x53, 0xe6, t);
-  const g = blendChannel(0x53, 0xe6, t);
-  const b = blendChannel(0x53, 0xe6, t);
-  return `rgb(${r},${g},${b})`;
+function blendColor(dayHex, nightHex, t = nightTransition) {
+  const a = hexToRgb(dayHex);
+  const b = hexToRgb(nightHex);
+  return `rgb(${Math.round(lerp(a[0], b[0], t))},${Math.round(lerp(a[1], b[1], t))},${Math.round(
+    lerp(a[2], b[2], t)
+  )})`;
 }
-function skyColor() {
-  const t = nightTransition;
-  const r = blendChannel(0xf7, 0x1b, t);
-  const g = blendChannel(0xf7, 0x1b, t);
-  const b = blendChannel(0xf7, 0x1f, t);
-  return `rgb(${r},${g},${b})`;
-}
+
+const PALETTE = {
+  skyTop: ["#7ec8f0", "#0a1130"],
+  skyBottom: ["#eaf7ff", "#1c2750"],
+  dirt: ["#e3c08a", "#2b2742"],
+  dirtLine: ["#9c6f3a", "#c9c4de"],
+  pebble: ["#bf9a63", "#43406a"],
+  dino: ["#4f9e3f", "#83d96e"],
+  cactus: ["#2f8f55", "#57b87e"],
+  bird: ["#9b59b6", "#cf9bea"],
+  cloud: ["#ffffff", "#9fa9d4"],
+};
+const col = (k) => blendColor(PALETTE[k][0], PALETTE[k][1]);
+
+// Sky color at the very top — used to carve the crescent moon out of the disc.
+const skyTopColor = () => col("skyTop");
+// Contrasting color for the game-over "X" eye.
+const deadEyeColor = () => blendColor("#3a2a1a", "#f0f0f0");
 
 // ---------------------------------------------------------------------------
 // Spawning.
@@ -543,12 +557,14 @@ function update(dt) {
   clouds = clouds.filter((c) => c.x + c.w > -10);
 
   // Collision.
-  const hb = dinoHitbox();
-  for (const o of obstacles) {
-    const ob = { x: o.x + 4, y: o.y + 4, w: o.w - 8, h: o.h - 8 };
-    if (overlaps(hb, ob)) {
-      gameOver();
-      break;
+  if (!invincible) {
+    const hb = dinoHitbox();
+    for (const o of obstacles) {
+      const ob = { x: o.x + 4, y: o.y + 4, w: o.w - 8, h: o.h - 8 };
+      if (overlaps(hb, ob)) {
+        gameOver();
+        break;
+      }
     }
   }
 }
@@ -565,57 +581,80 @@ const scoreEl = document.getElementById("score");
 const hiScoreEl = document.getElementById("hiScore");
 
 function render() {
-  const ink = inkColor();
-
-  // Sky.
-  ctx.fillStyle = skyColor();
+  // Sky gradient.
+  const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+  sky.addColorStop(0, col("skyTop"));
+  sky.addColorStop(1, col("skyBottom"));
+  ctx.fillStyle = sky;
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
-  // Moon / sun.
-  if (nightTransition > 0.05) {
-    ctx.fillStyle = `rgba(230,230,230,${nightTransition})`;
-    // crescent moon
+  // Sun (day) cross-fading into a crescent moon (night).
+  const cx = VIEW_W - 110;
+  const cy = 56;
+  if (nightTransition < 0.95) {
+    ctx.globalAlpha = 1 - nightTransition;
+    ctx.fillStyle = "#ffd24a";
     ctx.beginPath();
-    ctx.arc(VIEW_W - 110, 56, 18, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = skyColor();
+    // soft halo
+    ctx.globalAlpha = (1 - nightTransition) * 0.25;
     ctx.beginPath();
-    ctx.arc(VIEW_W - 102, 50, 16, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 32, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  if (nightTransition > 0.05) {
+    ctx.globalAlpha = nightTransition;
+    ctx.fillStyle = "#eef0d8";
+    ctx.beginPath();
+    ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+    ctx.fill();
+    // carve the crescent using the top-of-sky color
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = skyTopColor();
+    ctx.beginPath();
+    ctx.arc(cx + 8, cy - 6, 16, 0, Math.PI * 2);
     ctx.fill();
     // stars
-    ctx.fillStyle = `rgba(230,230,230,${nightTransition * 0.8})`;
+    ctx.fillStyle = `rgba(255,255,255,${nightTransition * 0.85})`;
     for (const s of STARS) ctx.fillRect(s.x, s.y, 2, 2);
   }
 
   // Clouds.
   for (const c of clouds) {
-    ctx.globalAlpha = 0.7;
-    drawSprite(CLOUD, c.x, c.y, PX, ink);
+    ctx.globalAlpha = 0.85;
+    drawSprite(CLOUD, c.x, c.y, PX, col("cloud"));
     ctx.globalAlpha = 1;
   }
 
-  // Ground line + scrolling bumps.
-  ctx.fillStyle = ink;
+  // Ground: dirt band, baseline, and scrolling pebbles.
+  ctx.fillStyle = col("dirt");
+  ctx.fillRect(0, GROUND_Y + 4, VIEW_W, VIEW_H - (GROUND_Y + 4));
+  ctx.fillStyle = col("dirtLine");
   ctx.fillRect(0, GROUND_Y + 2, VIEW_W, 2);
+  ctx.fillStyle = col("pebble");
   for (const b of GROUND_BUMPS) {
     const x = (b.x - groundOffset + VIEW_W) % VIEW_W;
-    ctx.fillRect(x, GROUND_Y + 4, b.w, 2);
+    ctx.fillRect(x, GROUND_Y + 8 + (b.x % 14), b.w, 2);
   }
 
   // Obstacles.
+  const cactusColor = col("cactus");
+  const birdColor = col("bird");
   for (const o of obstacles) {
     if (o.type === "cactus") {
       const unitW = spriteWidth(o.sprite, PX);
       for (let i = 0; i < o.count; i++) {
-        drawSprite(o.sprite, o.x + i * unitW, o.y, PX, ink);
+        drawSprite(o.sprite, o.x + i * unitW, o.y, PX, cactusColor);
       }
     } else {
-      drawSprite(o.flap ? BIRD_DOWN : BIRD_UP, o.x, o.y, PX, ink);
+      drawSprite(o.flap ? BIRD_DOWN : BIRD_UP, o.x, o.y, PX, birdColor);
     }
   }
 
   // Dino.
-  drawDino(ink);
+  drawDino(col("dino"));
 
   // Score (canvas copy is decorative; the HUD is the source of truth).
   scoreEl.textContent = pad(score);
@@ -652,7 +691,7 @@ function drawDino(ink) {
 
 // Replace the open eye-gap with an "X" to read as defeated.
 function drawDeadEye(ex, ey) {
-  ctx.fillStyle = inkColor();
+  ctx.fillStyle = deadEyeColor();
   ctx.fillRect(ex - PX, ey - PX, PX, PX);
   ctx.fillRect(ex + PX, ey - PX, PX, PX);
   ctx.fillRect(ex, ey, PX, PX);
@@ -694,4 +733,10 @@ window.__setScore = (n) => {
 window.__forceOver = () => {
   if (state === STATE.IDLE) startGame();
   gameOver();
+};
+window.__invincible = (v) => {
+  invincible = v;
+};
+window.__clearObstacles = () => {
+  obstacles = [];
 };
