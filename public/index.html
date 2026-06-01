@@ -9,10 +9,13 @@
 <body>
   <main class="stage">
     <div class="hud">
-      <span class="hud__label">DinoQuest</span>
+      <span class="hud__brand">
+        <span class="hud__badge" aria-hidden="true"></span>
+        <span class="hud__label">DinoQuest</span>
+      </span>
       <span class="hud__scores">
         <span id="hiScore" class="hud__hi">HI 00000</span>
-        <span id="score" class="hud__score">00000</span>
+        <span id="score" class="hud__score" aria-live="polite" aria-atomic="true">00000</span>
       </span>
     </div>
 

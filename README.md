@@ -60,9 +60,22 @@ dinoquest/
 ├── public/
 │   ├── index.html     # page shell + HUD + start/game-over overlay
 │   ├── style.css      # day/night theming, responsive layout
-│   └── game.js        # game loop, physics, sprites, rendering
+│   ├── engine.js      # DOM-free game core: state, physics, sprites, drawing
+│   └── game.js        # browser shell: canvas/HiDPI, input, loop, HUD glue
+├── tests/
+│   └── engine.test.js # unit tests for the engine (run with `bun test`)
 ├── shot.mjs           # optional Playwright screenshot harness (dev only)
 └── screenshots/       # README images
+```
+
+## Tests
+
+The game logic lives in `public/engine.js`, which has no DOM or browser
+dependencies — randomness, high-score storage and the canvas context are all
+injected — so the whole core is unit-testable under Bun:
+
+```sh
+bun test
 ```
 
 ## Regenerating screenshots (optional)
