@@ -10,6 +10,6 @@
     "shot": "bun shot.mjs"
   },
   "devDependencies": {
-    "playwright-core": "^1.60.0"
+    "playwright-core": "^1.61.1"
   }
 }
