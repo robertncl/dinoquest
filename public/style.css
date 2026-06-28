@@ -112,6 +112,16 @@ body.is-night {
   color: transparent;
 }
 
+.hud__level {
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+  color: var(--accent);
+}
+
 .hud__scores {
   display: inline-flex;
   align-items: baseline;
@@ -176,6 +186,68 @@ canvas {
   height: 100%;
   image-rendering: pixelated;
   touch-action: manipulation;
+}
+
+/* -------------------------------------------------- Level-up banner --- */
+
+.level-banner {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  gap: 0.25rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.level-banner[hidden] {
+  display: none;
+}
+
+.level-banner__lv {
+  font-size: clamp(1.6rem, 5vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.4));
+}
+
+.level-banner__name {
+  font-size: clamp(0.8rem, 2.4vw, 1rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.85;
+}
+
+.level-banner--show {
+  animation: level-pop 2.2s ease forwards;
+}
+
+@keyframes level-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.82) translateY(10px);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.06) translateY(0);
+  }
+  22% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
 }
 
 /* -------------------------------------------------------------- Overlay --- */
@@ -289,7 +361,8 @@ kbd {
     transition: none;
   }
   .overlay__keys,
-  .hud__score--flash {
+  .hud__score--flash,
+  .level-banner--show {
     animation: none;
   }
 }

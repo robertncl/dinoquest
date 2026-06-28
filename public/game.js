@@ -9,6 +9,7 @@ import {
   drawScene,
   pad,
   STATE,
+  LEVELS,
   VIEW_W,
   VIEW_H,
 } from "./engine.js";
@@ -90,7 +91,12 @@ startBtn.addEventListener("click", () => game.jump());
 
 const scoreEl = document.getElementById("score");
 const hiScoreEl = document.getElementById("hiScore");
+const levelEl = document.getElementById("level");
+const levelBanner = document.getElementById("levelBanner");
+const levelBannerLv = levelBanner.querySelector(".level-banner__lv");
+const levelBannerName = levelBanner.querySelector(".level-banner__name");
 let lastShownState = null;
+let bannerLevel = -1;
 
 function syncDom() {
   // Day/night theme follows the canvas cross-fade.
@@ -102,6 +108,25 @@ function syncDom() {
   const blink = game.flashTimer > 0 && Math.floor(game.flashTimer * 10) % 2 === 0;
   scoreEl.style.opacity = blink ? "0.2" : "1";
   scoreEl.classList.toggle("hud__score--flash", game.flashTimer > 0);
+
+  // Level chip + "Level N" announcement banner.
+  levelEl.textContent = `LV ${game.level + 1}`;
+  if (game.levelFlash > 0) {
+    if (bannerLevel !== game.level) {
+      bannerLevel = game.level;
+      levelBannerLv.textContent = `Level ${game.level + 1}`;
+      levelBannerName.textContent = LEVELS[game.level].name;
+      levelBanner.hidden = false;
+      // Restart the entrance animation on each promotion.
+      levelBanner.classList.remove("level-banner--show");
+      void levelBanner.offsetWidth;
+      levelBanner.classList.add("level-banner--show");
+    }
+  } else if (!levelBanner.hidden) {
+    levelBanner.hidden = true;
+    levelBanner.classList.remove("level-banner--show");
+    bannerLevel = -1;
+  }
 
   // Overlay: only rewrite text when the state actually changes.
   overlay.hidden = game.state === STATE.RUNNING;

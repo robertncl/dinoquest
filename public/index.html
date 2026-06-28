@@ -13,6 +13,7 @@
         <span class="hud__badge" aria-hidden="true"></span>
         <span class="hud__label">DinoQuest</span>
       </span>
+      <span id="level" class="hud__level" aria-live="polite">LV 1</span>
       <span class="hud__scores">
         <span id="hiScore" class="hud__hi">HI 00000</span>
         <span id="score" class="hud__score" aria-live="polite" aria-atomic="true">00000</span>
@@ -21,6 +22,11 @@
 
     <div class="canvas-wrap">
       <canvas id="game" width="900" height="260" aria-label="DinoQuest runner game"></canvas>
+
+      <div id="levelBanner" class="level-banner" hidden aria-hidden="true">
+        <span class="level-banner__lv"></span>
+        <span class="level-banner__name"></span>
+      </div>
 
       <div id="overlay" class="overlay">
         <h1 class="overlay__title">DinoQuest</h1>

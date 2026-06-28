@@ -31,6 +31,9 @@ import {
   randRange,
   nextSpawnDelay,
   pad,
+  // levels
+  LEVELS,
+  levelForScore,
   // core + rendering
   DinoGame,
   drawDino,
@@ -315,6 +318,78 @@ describe("pad", () => {
     expect(pad(123)).toBe("00123");
     expect(pad(12.9)).toBe("00012");
     expect(pad(99999)).toBe("99999");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Levels.
+// ---------------------------------------------------------------------------
+
+describe("levelForScore", () => {
+  it("defines five levels starting at level 0 / score 0", () => {
+    expect(LEVELS).toHaveLength(5);
+    expect(LEVELS[0].scoreStart).toBe(0);
+    expect(LEVELS[0].speed).toBe(START_SPEED); // opening level matches the classic pace
+  });
+  it("maps scores to the level whose threshold they have crossed", () => {
+    expect(levelForScore(0)).toBe(0);
+    expect(levelForScore(LEVELS[1].scoreStart - 1)).toBe(0);
+    expect(levelForScore(LEVELS[1].scoreStart)).toBe(1);
+    expect(levelForScore(LEVELS[2].scoreStart)).toBe(2);
+    expect(levelForScore(LEVELS[3].scoreStart)).toBe(3);
+    expect(levelForScore(LEVELS[4].scoreStart)).toBe(4);
+    expect(levelForScore(1e9)).toBe(4);
+  });
+  it("raises pace, tightens gaps and adds birds with each level", () => {
+    for (let i = 1; i < LEVELS.length; i++) {
+      expect(LEVELS[i].speed).toBeGreaterThan(LEVELS[i - 1].speed);
+      expect(LEVELS[i].gapMult).toBeLessThan(LEVELS[i - 1].gapMult);
+      expect(LEVELS[i].birdChance).toBeGreaterThan(LEVELS[i - 1].birdChance);
+    }
+  });
+});
+
+describe("level progression", () => {
+  function runningGame() {
+    const g = makeGame();
+    g.reset(STATE.RUNNING);
+    g.invincible = true;
+    g.spawnTimer = 100; // keep the spawner quiet
+    return g;
+  }
+
+  it("starts a run on level 0 with no banner", () => {
+    const g = runningGame();
+    expect(g.level).toBe(0);
+    expect(g.levelFlash).toBe(0);
+  });
+
+  it("promotes and snaps the pace up to the level floor on a threshold", () => {
+    const g = runningGame();
+    g.score = LEVELS[1].scoreStart;
+    g.update(0.001);
+    expect(g.level).toBe(1);
+    expect(g.speed).toBeGreaterThanOrEqual(LEVELS[1].speed);
+    expect(g.levelFlash).toBeGreaterThan(0);
+  });
+
+  it("counts the banner timer down over time", () => {
+    const g = runningGame();
+    g.score = LEVELS[2].scoreStart;
+    g.update(0.001);
+    const armed = g.levelFlash;
+    g.update(0.5);
+    expect(g.levelFlash).toBeLessThan(armed);
+  });
+
+  it("resets back to level 0 on a new run", () => {
+    const g = runningGame();
+    g.score = LEVELS[3].scoreStart;
+    g.update(0.001);
+    expect(g.level).toBe(3);
+    g.reset(STATE.RUNNING);
+    expect(g.level).toBe(0);
+    expect(g.levelFlash).toBe(0);
   });
 });
 

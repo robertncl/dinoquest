@@ -237,6 +237,33 @@ export const MAX_DT = 0.05; // clamp long frames (tab switches) to 50ms
 
 export const STATE = { IDLE: "idle", RUNNING: "running", OVER: "over" };
 
+// ---------------------------------------------------------------------------
+// Levels.
+//
+// A run is divided into five score-gated levels. Crossing a threshold snaps the
+// pace up to that level's floor, tightens the gap between obstacles (`gapMult`)
+// and sends more birds (`birdChance`) — so difficulty steps up at each gate on
+// top of the smooth within-level speed ramp. Level 0's `speed` equals
+// START_SPEED so the opening level matches the classic feel.
+// ---------------------------------------------------------------------------
+
+export const LEVELS = [
+  { name: "Verdant Valley", scoreStart: 0, speed: 320, gapMult: 1.0, birdChance: 0.18 },
+  { name: "Cactus Flats", scoreStart: 300, speed: 430, gapMult: 0.9, birdChance: 0.22 },
+  { name: "Dusty Canyon", scoreStart: 700, speed: 560, gapMult: 0.82, birdChance: 0.27 },
+  { name: "Windswept Ridge", scoreStart: 1200, speed: 700, gapMult: 0.74, birdChance: 0.33 },
+  { name: "Volcano Rim", scoreStart: 1900, speed: 840, gapMult: 0.66, birdChance: 0.4 },
+];
+
+// Index (0-based) of the level a given score falls into.
+export function levelForScore(score) {
+  let i = 0;
+  for (let k = 0; k < LEVELS.length; k++) {
+    if (score >= LEVELS[k].scoreStart) i = k;
+  }
+  return i;
+}
+
 // Derived dino dimensions.
 export const DINO_STAND_H = spriteHeight([...DINO_BODY, ...DINO_LEGS_STAND], PX);
 export const DINO_STAND_W = spriteWidth(DINO_BODY, PX);
@@ -439,6 +466,8 @@ export class DinoGame {
     this.isNight = false;
     this.nightTransition = 0;
     this.flashTimer = 0;
+    this.level = 0;
+    this.levelFlash = 0; // seconds remaining on the "Level N" banner
     this.invincible = false;
     this.dino = {
       x: 60,
@@ -515,7 +544,7 @@ export class DinoGame {
   spawnObstacle() {
     const roll = this.rng();
     let obstacle;
-    if (roll < 0.18 && this.score > BIRD_SCORE_GATE) {
+    if (roll < LEVELS[this.level].birdChance && this.score > BIRD_SCORE_GATE) {
       const heights = [GROUND_Y - 30, GROUND_Y - 60, GROUND_Y - 95];
       const y = heights[Math.floor(this.rng() * heights.length)];
       obstacle = {
@@ -550,7 +579,7 @@ export class DinoGame {
       };
     }
     this.obstacles.push(obstacle);
-    this.spawnTimer = nextSpawnDelay(this.speed, this.rng);
+    this.spawnTimer = nextSpawnDelay(this.speed, this.rng) * LEVELS[this.level].gapMult;
     return obstacle;
   }
 
@@ -615,6 +644,16 @@ export class DinoGame {
       this.flashTimer = 0.6;
     }
     if (this.flashTimer > 0) this.flashTimer -= dt;
+
+    // Level progression: stepping into a higher level snaps the pace up to that
+    // level's floor and raises the "Level N" announcement banner.
+    const lvl = levelForScore(this.score);
+    if (lvl > this.level) {
+      this.level = lvl;
+      this.speed = Math.max(this.speed, LEVELS[lvl].speed);
+      this.levelFlash = 2.2;
+    }
+    if (this.levelFlash > 0) this.levelFlash -= dt;
 
     // Vertical physics.
     if (!d.onGround) {
