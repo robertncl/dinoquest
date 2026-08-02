@@ -421,6 +421,15 @@ describe("DinoGame construction", () => {
     expect(new DinoGame({ storage: null }).hiScore).toBe(0);
   });
 
+  it("tolerates storage.getItem throwing", () => {
+    const throwingStorage = {
+      getItem() {
+        throw new Error("blocked");
+      },
+    };
+    expect(new DinoGame({ storage: throwingStorage }).hiScore).toBe(0);
+  });
+
   it("seeds cosmetic decoration arrays", () => {
     const g = makeGame();
     expect(g.bumps).toHaveLength(26);
@@ -842,6 +851,17 @@ describe("drawScene", () => {
     expect(() => drawScene(ctx, g)).not.toThrow();
     expect(ctx.calls.fillRect.length).toBeGreaterThan(0);
     expect(ctx.calls.gradients).toBeGreaterThan(0);
+  });
+
+  it("renders grass tufts on bumps whose offset is a multiple of 3", () => {
+    // rng() => 0 makes every decorative bump's `o` offset 0, which is
+    // divisible by 3 and exercises the grass-tuft branch in drawGround.
+    const g = new DinoGame({ rng: () => 0, storage: fakeStorage() });
+    g.start();
+    const ctx = makeCtx();
+    drawScene(ctx, g);
+    const grassRects = ctx.calls.fillRect.filter((c) => c.fillStyle === theme(0).grass);
+    expect(grassRects.length).toBeGreaterThan(0);
   });
 
   it("renders a night scene with obstacles", () => {
