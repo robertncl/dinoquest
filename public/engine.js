@@ -230,7 +230,7 @@ export const JUMP_VELOCITY = -760; // px/s
 export const DUCK_FAST_FALL = 600; // px/s added when ducking mid-air
 export const START_SPEED = 320; // px/s
 export const MAX_SPEED = 900;
-export const SPEED_RAMP = 14; // px/s added per second of play
+export const SPEED_RAMP = 10.5; // px/s added per second of play
 export const DAY_NIGHT_SCORE = 700; // score interval for the day/night flip
 export const BIRD_SCORE_GATE = 250; // birds only appear past this score
 export const MAX_DT = 0.05; // clamp long frames (tab switches) to 50ms
@@ -249,10 +249,10 @@ export const STATE = { IDLE: "idle", RUNNING: "running", OVER: "over" };
 
 export const LEVELS = [
   { name: "Verdant Valley", scoreStart: 0, speed: 320, gapMult: 1.0, birdChance: 0.18 },
-  { name: "Cactus Flats", scoreStart: 300, speed: 430, gapMult: 0.9, birdChance: 0.22 },
-  { name: "Dusty Canyon", scoreStart: 700, speed: 560, gapMult: 0.82, birdChance: 0.27 },
-  { name: "Windswept Ridge", scoreStart: 1200, speed: 700, gapMult: 0.74, birdChance: 0.33 },
-  { name: "Volcano Rim", scoreStart: 1900, speed: 840, gapMult: 0.66, birdChance: 0.4 },
+  { name: "Cactus Flats", scoreStart: 300, speed: 402.5, gapMult: 0.925, birdChance: 0.21 },
+  { name: "Dusty Canyon", scoreStart: 700, speed: 500, gapMult: 0.865, birdChance: 0.2475 },
+  { name: "Windswept Ridge", scoreStart: 1200, speed: 605, gapMult: 0.805, birdChance: 0.2925 },
+  { name: "Volcano Rim", scoreStart: 1900, speed: 710, gapMult: 0.745, birdChance: 0.345 },
 ];
 
 // Index (0-based) of the level a given score falls into.
