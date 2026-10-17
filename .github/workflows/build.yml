@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -30,7 +32,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: "1.4.2"
+          bun-version: "1.4.3"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -57,4 +59,12 @@ jobs:
 
           missing=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/does-not-exist.js)
           test "$missing" = "404"
+
+          # Malformed escapes and encoded traversal must 404, not 500.
+          malformed=$(curl -s -o /dev/null -w '%{http_code}' 'http://localhost:3000/%')
+          test "$malformed" = "404"
+          traversal=$(curl -s --path-as-is -o /dev/null -w '%{http_code}' 'http://localhost:3000/..%252fpackage.json')
+          test "$traversal" = "404"
+
+          curl -fsSI http://localhost:3000/ | grep -qi '^content-security-policy:'
           echo "Smoke test passed."
