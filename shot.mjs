@@ -39,13 +39,26 @@ await page.keyboard.press("Space");
 await page.waitForTimeout(180);
 await shot("04-jumping");
 
-// 5. Night mode (drive score up via the test hook), with a clean field.
-await page.evaluate(() => {
-  window.__setScore(820);
-  window.__clearObstacles();
-});
-await page.waitForTimeout(1100);
-await shot("05-night");
+// 5 + 7–11. Each level's scenery, by day and by night. The score only moves
+// forward (levels never go back down), so visit them in increasing order and
+// wait out the level + day/night cross-fades before each capture. Scores
+// 700–1399 and 2100–2799 fall in the night half of the day/night cycle.
+const SCENES = [
+  ["07-level-2", 340],
+  ["05-night", 820], // Dusty Canyon (level 3) is only ever seen at night
+  ["08-level-4-night", 1250],
+  ["09-level-4", 1500],
+  ["10-level-5", 1950],
+  ["11-level-5-night", 2150],
+];
+for (const [name, score] of SCENES) {
+  await page.evaluate((s) => {
+    window.__setScore(s);
+    window.__clearObstacles();
+  }, score);
+  await page.waitForTimeout(1800);
+  await shot(name);
+}
 await page.evaluate(() => window.__invincible(false));
 
 // 6. Game over (force a collision via the test hook).

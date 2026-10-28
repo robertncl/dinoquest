@@ -13,9 +13,17 @@ game ships with **zero binary image assets**.
 | --- | --- |
 | ![Title screen](screenshots/01-title.png) | ![Running](screenshots/02-running.png) |
 
-| Night mode | Game over |
+| Cactus Flats (level 2) | Dusty Canyon (level 3, night) |
 | --- | --- |
-| ![Night mode](screenshots/05-night.png) | ![Game over](screenshots/06-gameover.png) |
+| ![Cactus Flats](screenshots/07-level-2.png) | ![Dusty Canyon at night](screenshots/05-night.png) |
+
+| Windswept Ridge (level 4) | Volcano Rim (level 5) |
+| --- | --- |
+| ![Windswept Ridge](screenshots/09-level-4.png) | ![Volcano Rim](screenshots/10-level-5.png) |
+
+| Volcano Rim at night | Game over |
+| --- | --- |
+| ![Volcano Rim at night](screenshots/11-level-5-night.png) | ![Game over](screenshots/06-gameover.png) |
 
 ## Controls
 
@@ -32,6 +40,10 @@ game ships with **zero binary image assets**.
 - Cacti (small, large, and clustered) plus pterodactyls at three heights.
 - Speed ramps up over time; obstacle spacing tightens to match.
 - Day/night cycle with a smooth color blend, crescent moon, and stars.
+- Five levels, each with its own palette, parallax backdrop, ground texture and
+  ambient particles: wooded hills and fireflies, desert mesas and blowing sand,
+  striped canyon buttes, snowy peaks in the wind, and a smoking volcano over
+  lava-cracked basalt. Scenery cross-fades between levels.
 - High score persisted in `localStorage`.
 - HiDPI-aware rendering and responsive, mobile-friendly layout.
 
