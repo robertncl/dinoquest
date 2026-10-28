@@ -42,6 +42,36 @@ body {
   user-select: none;
 }
 
+/* Per-level page tint + accent, matching each level's scenery. These must
+   come before body.is-night so its --bg-accent override still wins at night. */
+body[data-level="2"] {
+  --bg-accent: #f7e3b6;
+  --night-bg-accent: #3a2c5a;
+  --accent: #c9893e;
+  --accent-2: #ff7aa8;
+}
+
+body[data-level="3"] {
+  --bg-accent: #f8d2b8;
+  --night-bg-accent: #4a1a3a;
+  --accent: #d0603a;
+  --accent-2: #ff9a6a;
+}
+
+body[data-level="4"] {
+  --bg-accent: #d6e4f8;
+  --night-bg-accent: #1e2c58;
+  --accent: #3a7ac8;
+  --accent-2: #6ac4b4;
+}
+
+body[data-level="5"] {
+  --bg-accent: #f5c4b0;
+  --night-bg-accent: #3a0c18;
+  --accent: #e84a2a;
+  --accent-2: #ffb03a;
+}
+
 body.is-night {
   --bg: var(--night-bg);
   --bg-accent: var(--night-bg-accent);

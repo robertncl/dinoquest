@@ -20,6 +20,8 @@ import {
   spritePalette,
   theme,
   deadEyeColor,
+  withAlpha,
+  hash01,
   // collision
   scaleBoxes,
   overlaps,
@@ -34,6 +36,8 @@ import {
   // levels
   LEVELS,
   levelForScore,
+  LEVEL_THEMES,
+  LEVEL_FADE,
   // core + rendering
   DinoGame,
   drawDino,
@@ -251,11 +255,61 @@ describe("spritePalette", () => {
   });
 });
 
+describe("withAlpha / hash01", () => {
+  it("withAlpha converts an rgb() color to rgba()", () => {
+    expect(withAlpha("rgb(1,2,3)", 0.5)).toBe("rgba(1,2,3,0.5)");
+  });
+  it("hash01 is deterministic and in [0,1)", () => {
+    expect(hash01(42)).toBe(hash01(42));
+    expect(hash01(42)).not.toBe(hash01(43));
+    for (let n = -50; n < 50; n++) {
+      expect(hash01(n)).toBeGreaterThanOrEqual(0);
+      expect(hash01(n)).toBeLessThan(1);
+    }
+  });
+});
+
+describe("LEVEL_THEMES", () => {
+  it("gives every level a theme with the same palette keys", () => {
+    expect(LEVEL_THEMES).toHaveLength(LEVELS.length);
+    const keys = Object.keys(LEVEL_THEMES[0].palette).sort();
+    for (const lt of LEVEL_THEMES) {
+      expect(Object.keys(lt.palette).sort()).toEqual(keys);
+      for (const pair of Object.values(lt.palette)) {
+        expect(pair).toHaveLength(2);
+        for (const hex of pair) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
+      }
+    }
+  });
+  it("gives every level its own backdrop, ground and air style", () => {
+    for (const key of ["backdrop", "ground", "air"]) {
+      expect(new Set(LEVEL_THEMES.map((lt) => lt[key])).size).toBe(LEVEL_THEMES.length);
+    }
+  });
+});
+
 describe("theme / deadEyeColor", () => {
   it("resolves palette endpoints for day and night", () => {
     expect(theme(0).skyTop).toBe("rgb(126,200,240)"); // #7ec8f0
     expect(theme(1).skyTop).toBe("rgb(10,17,48)"); // #0a1130
     expect(theme(0.42).t).toBe(0.42);
+  });
+  it("defaults to level 0 and blends between level palettes", () => {
+    expect(theme(0, 0)).toEqual(theme(0));
+    const day1 = theme(0, 1).skyTop;
+    const day2 = theme(0, 2).skyTop;
+    const mid = parseCss(theme(0, 1.5).skyTop);
+    for (let i = 0; i < 3; i++) {
+      const lo = Math.min(parseCss(day1)[i], parseCss(day2)[i]);
+      const hi = Math.max(parseCss(day1)[i], parseCss(day2)[i]);
+      expect(mid[i]).toBeGreaterThanOrEqual(lo);
+      expect(mid[i]).toBeLessThanOrEqual(hi);
+    }
+  });
+  it("clamps out-of-range levels to the first/last theme", () => {
+    expect(theme(0, -3)).toEqual({ ...theme(0, 0), lv: -3 });
+    const last = LEVEL_THEMES.length - 1;
+    expect(theme(0, last + 5)).toEqual({ ...theme(0, last), lv: last + 5 });
   });
   it("deadEyeColor is dark by day and light by night", () => {
     expect(deadEyeColor(0)).toBe("rgb(58,42,26)");
@@ -382,6 +436,24 @@ describe("level progression", () => {
     expect(g.levelFlash).toBeLessThan(armed);
   });
 
+  it("cross-fades the scenery toward a new level over LEVEL_FADE", () => {
+    const g = runningGame();
+    g.score = LEVELS[1].scoreStart;
+    g.update(0.001);
+    expect(g.levelVisual).toBeGreaterThan(0);
+    expect(g.levelVisual).toBeLessThan(1);
+    for (let t = 0; t < LEVEL_FADE; t += 0.05) g.update(0.05);
+    expect(g.levelVisual).toBe(1);
+  });
+
+  it("only fades across the last boundary when skipping levels", () => {
+    const g = runningGame();
+    g.score = LEVELS[3].scoreStart;
+    g.update(0.001);
+    expect(g.levelVisual).toBeGreaterThanOrEqual(2);
+    expect(g.levelVisual).toBeLessThan(3);
+  });
+
   it("resets back to level 0 on a new run", () => {
     const g = runningGame();
     g.score = LEVELS[3].scoreStart;
@@ -390,6 +462,7 @@ describe("level progression", () => {
     g.reset(STATE.RUNNING);
     expect(g.level).toBe(0);
     expect(g.levelFlash).toBe(0);
+    expect(g.levelVisual).toBe(0);
   });
 });
 
@@ -862,6 +935,21 @@ describe("drawScene", () => {
     drawScene(ctx, g);
     const grassRects = ctx.calls.fillRect.filter((c) => c.fillStyle === theme(0).grass);
     expect(grassRects.length).toBeGreaterThan(0);
+  });
+
+  it("renders every level, settled and mid-cross-fade, by day and night", () => {
+    const g = makeGame();
+    g.start();
+    for (let i = 0; i < 40; i++) g.update(0.05);
+    for (let lv = 0; lv < LEVELS.length; lv += 0.5) {
+      for (const night of [0, 1]) {
+        g.levelVisual = lv;
+        g.nightTransition = night;
+        const ctx = makeCtx();
+        expect(() => drawScene(ctx, g)).not.toThrow();
+        expect(ctx.calls.fillRect.length).toBeGreaterThan(0);
+      }
+    }
   });
 
   it("renders a night scene with obstacles", () => {

@@ -99,8 +99,9 @@ let lastShownState = null;
 let bannerLevel = -1;
 
 function syncDom() {
-  // Day/night theme follows the canvas cross-fade.
+  // Day/night theme follows the canvas cross-fade; page accents follow the level.
   document.body.classList.toggle("is-night", game.nightTransition > 0.5);
+  document.body.dataset.level = String(game.level + 1);
 
   // Score HUD (source of truth for the on-screen numbers).
   scoreEl.textContent = pad(game.score);
